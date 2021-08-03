@@ -349,14 +349,46 @@ $ du -sh dracut-*.d/ mkosi-*.d/
 \end{frame}
 
 \begin{frame}
+  \frametitle{What works?}
+
+  \textbf{OK:}\\
+  Fedora Server in QEmu with direct kernel boot\\
+  My laptop (Fedora Workstation Lenovo X1)\\
+  LVM\\
+  LUKS\\
+  emergency mode without authentication\\
+  resume
+
+  \bigskip
+
+  \textbf{Never tested:}\\
+  iscsi,
+  fcoe,
+  nfs,
+  nbd,
+  kdump,
+  network syntax (ip=/ifname=/rd.route=/…) supported by dracut and systemd-network-generator,
+  plymouth,
+  network,
+  raid,
+  sshd
+
+  \bigskip
+
+  \textbf{Requires future work:}\\
+  integration with systemd-repart?,\\
+  switching back to initramfs for shutdown
+\end{frame}
+
+\begin{frame}
   \frametitle{Summary}
 
   Build initramfs images directly from system packages\\
   Let systemd do the heavy lifting in the initrd\\
   Do things in the initrd like on the host\\
   Extend the initrd image using systemd-ext/OverlayFS\\
-  Sign and verify all individual compoments
-
+  (Build initrd images and extensions in koji)\\
+  (Sign and verify all individual compoments)
 \end{frame}
 
 \begin{frame}[fragile]
