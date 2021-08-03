@@ -37,11 +37,11 @@
 \begin{frame}
   \frametitle{Why do we need an initrd?}
 
-  The initrd is a small file system image that the boot loader passes to the kernel.\\
+  The initrd is a small file system that the boot loader passes to the kernel.\\
 
   \pause
 
-  The primary purpose of the initrd is to load the real root file system.\\
+  The primary purpose of the initrd is to mount the real root file system.\\
 
   \pause
 
@@ -175,6 +175,10 @@
 \end{frame}
 
 \begin{frame}
+  \frametitle{Current implementation — …}
+\end{frame}
+
+\begin{frame}
   \frametitle{Current implementation — \emph{mkosi-initrd}}
 
   \href{https://github.com/systemd/mkosi}{mkosi} is a python program to build images from rpms
@@ -190,7 +194,7 @@
 
   Some alternatives:
   \begin{itemize}
-  \item composer
+  \item osbuild
   \item kiwi-ng
   \end{itemize}
 \end{frame}
@@ -263,6 +267,19 @@ $ du -sh dracut-*.d/ mkosi-*.d/
 \end{frame}
 
 \begin{frame}
+  \frametitle{Building sysexts (with mkosi?)}
+
+  \begin{enumerate}
+  \item Mount an initramfs image somewhere
+  \item Mount an overlays over it (upper layer empty)
+  \item \texttt{dnf install --installroot=… <packages for sysext>}
+  \item Create a file system image with upper layer only
+  \item (Optionally create partition dm-verity hash for it)
+  \item (Optionally sign the whole thing)
+  \end{enumerate}
+\end{frame}
+
+\begin{frame}
   \frametitle{\sout{Host-specific and }Generic and Host-customized images}
 
   We need a mechanism to extend/customize images.
@@ -296,7 +313,7 @@ $ du -sh dracut-*.d/ mkosi-*.d/
 
   mkosi: \sout{cpio and zstd (\#728)}\\
   \phantom{mkosi: }\sout{RemoveFiles= (\#744)}\\
-  \phantom{mkosi: }release\\
+  \phantom{mkosi: }\sout{Release} v10\\
 
   various systemd fixes (249+ should be OK)\\
 
@@ -351,9 +368,15 @@ $ du -sh dracut-*.d/ mkosi-*.d/
 
   \url{https://www.freedesktop.org/software/systemd/man/systemd-sysext.html}
 
-  \url{https://www.kernel.org/doc/html/latest/admin-guide/device-mapper/verity.html}
+  {
+    \small
+    \url{https://gitlab.com/cryptsetup/cryptsetup/-/wikis/DMVerity}\\
+    \color{gray}{\url{https://www.kernel.org/doc/html/latest/admin-guide/device-mapper/verity.html}}
+    }
 
   \url{https://www.kernel.org/doc/html/latest/filesystems/overlayfs.html}
+
+  These slides: \url{https://github.com/keszybz/mkosi-initrd-talk}
 
 \end{frame}
 
