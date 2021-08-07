@@ -18,6 +18,12 @@
 %gets rid of navigation symbols
 \setbeamertemplate{navigation symbols}{}
 
+\newcommand{\done}{\textcolor{teal}{\checkmark}}
+\newcommand{\pull}[3]{\href{https://github.com/systemd/#1/pulls/#2}{#3 (\##2)}}
+\newcommand{\pulldone}[3]{\pull{#1}{#2}{#3} \done}
+\newcommand{\commit}[3]{\href{https://github.com/systemd/#1/commit/#2}{#3 (#2)}}
+\newcommand{\commitdone}[3]{\commit{#1}{#2}{#3} \done}
+
 \title{Building initrd images from rpms}
 \author{Zbigniew Jędrzejewski-Szmek}
 \institute{%
@@ -47,6 +53,16 @@
 
   initrd == initramfs
 \end{frame}
+
+% ArchLinux: mkinitcpio
+% https://wiki.archlinux.org/title/Mkinitcpio
+% https://man.archlinux.org/man/mkinitcpio.8
+% glibc-based, busybox, systemd optional?, runtime hooks
+% Helpers: add_module, add_binary, add_file, add_dir, add_full_dir,
+% add_symlink, add_all_modules, add_checked_modules, add_runscripts
+
+% Debian: initramfs-tools, update-initramfs → mkinitramfs
+% hooks, prereqs, copy_exec, force_load, log_*
 
 \begin{frame}
   \frametitle{Status quo — dracut}
@@ -204,7 +220,16 @@
 
   % First with summary
   \begin{minted}{bash}
-    sudo mkosi -f -o initrd.cpio.zstd
+sudo mkosi -f -o initrd.cpio.zstd sumary
+sudo mkosi -f -o initrd.cpio.zstd
+  \end{minted}
+
+  \bigskip
+  \pause
+
+  \begin{minted}{bash}
+KVER=5.13.0-0.rc2.19.fc35.x86_64
+sudo mkosi --build-env=KERNEL_VERSION=$KVER -f -o initrd-$KVER.cpio.zstd -r rawhide-35
   \end{minted}
 \end{frame}
 
@@ -271,7 +296,7 @@ $ du -sh dracut-*.d/ mkosi-*.d/
 
   \begin{enumerate}
   \item Mount an initramfs image somewhere
-  \item Mount an overlays over it (upper layer empty)
+  \item Mount an OverlayFS over it (upper layer empty)
   \item \texttt{dnf install --installroot=… <packages for sysext>}
   \item Create a file system image with upper layer only
   \item (Optionally create partition dm-verity hash for it)
@@ -309,11 +334,46 @@ $ du -sh dracut-*.d/ mkosi-*.d/
 \end{frame}
 
 \begin{frame}
+  \frametitle{What works?}
+
+  \textbf{OK:}\\
+  Fedora Server in QEmu with direct kernel boot\\
+  My laptop (Fedora Workstation Lenovo X1)\\
+  LVM\\
+  LUKS\\
+  emergency mode without authentication\\
+  resume
+
+  \bigskip
+
+  \textbf{Never tested:}\\
+  iscsi,
+  fcoe,
+  nfs,
+  nbd,
+  kdump,
+  network syntax (ip=/ifname=/rd.route=/…) supported by dracut and systemd-network-generator,
+  plymouth,
+  network,
+  raid,
+  sshd,
+  bluetooth,
+  netconsole
+
+  \bigskip
+
+  \textbf{Requires future work:}\\
+  integration with systemd-repart?\\
+  switching back to initramfs for shutdown\\
+  firmware
+\end{frame}
+
+\begin{frame}
   \frametitle{TODO list}
 
-  mkosi: \sout{cpio and zstd (\#728)}\\
-  \phantom{mkosi: }\sout{RemoveFiles= (\#744)}\\
-  \phantom{mkosi: }\sout{Release} v10\\
+  mkosi: \pulldone{mkosi}{728}{cpio and zstd}\\
+  \phantom{mkosi: }\pulldone{mkosi}{744}{RemoveFiles=}\\
+  \phantom{mkosi: }\commitdone{mkosi}{v10}{Release}\\
 
   various systemd fixes (249+ should be OK)\\
 
@@ -346,38 +406,6 @@ $ du -sh dracut-*.d/ mkosi-*.d/
   Drop \texttt{polkit}?
 
   Do something with identical license texts?
-\end{frame}
-
-\begin{frame}
-  \frametitle{What works?}
-
-  \textbf{OK:}\\
-  Fedora Server in QEmu with direct kernel boot\\
-  My laptop (Fedora Workstation Lenovo X1)\\
-  LVM\\
-  LUKS\\
-  emergency mode without authentication\\
-  resume
-
-  \bigskip
-
-  \textbf{Never tested:}\\
-  iscsi,
-  fcoe,
-  nfs,
-  nbd,
-  kdump,
-  network syntax (ip=/ifname=/rd.route=/…) supported by dracut and systemd-network-generator,
-  plymouth,
-  network,
-  raid,
-  sshd
-
-  \bigskip
-
-  \textbf{Requires future work:}\\
-  integration with systemd-repart?,\\
-  switching back to initramfs for shutdown
 \end{frame}
 
 \begin{frame}
