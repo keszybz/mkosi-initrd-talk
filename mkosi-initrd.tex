@@ -33,7 +33,7 @@
   \medskip
   \ccbysa
 }
-\date{\tiny Nest with Fedora, 7.8.2021}
+\date{\tiny DevConf2022, 28.01.2022}
 
 \begin{document}
 \begin{frame}
@@ -43,11 +43,11 @@
 \begin{frame}
   \frametitle{Why do we need an initrd?}
 
-  The initrd is a small file system that the boot loader passes to the kernel.\\
+  a small file system that the boot loader passes to the kernel\\
 
   \pause
 
-  The primary purpose of the initrd is to mount the real root file system.\\
+  the purpose of the initrd is to mount the real root file system\\
 
   \pause
 
@@ -79,32 +79,64 @@
   \item helpers to do various things in the initrd
   \end{itemize}
 
-  \bigskip
+%%  \bigskip
 
-  \hrule
+%%   \hrule
 
-  \bigskip
-  \pause
+%%   \bigskip
+%%   \pause
 
-  Dracut (optionally) installs systemd and udev into the initrd.\\
-  \pause
-  Systemd is written to support running in the initrd.\\
-  Systemd provides services to do all the things that the initrd does.\\
+%%   Dracut (optionally) installs systemd and udev into the initrd.\\
+%%   \pause
+%%   Systemd is written to support running in the initrd.\\
+%%   Systemd provides services to do all the things that the initrd does.\\
 
-  \pause
+%%   \pause
 
-  Why wrap systemd in another execution queue?
+%%   Why wrap systemd in another execution queue?
 \end{frame}
 
 \begin{frame}
-  \frametitle{One step back: why is the initrd so special?}
-
-  As far as the kernel is concerned, the initrd is just another file system
-  (\texttt{/init}, \texttt{/etc/initrd-release})\\
+  \frametitle{``initrds over the years''}
 
   \pause
 
-  (We switch back into the initrd image for shutdown.)\\
+
+  stage I: ``very special'' — busybox with scripts, ...
+
+  \pause
+
+  stage II: ``special'' — normal programs + custom event queue
+
+  \pause
+
+  stage III: ``quasinormal'' – normal programs + systemd + custom elements
+
+  \pause
+
+  stage IV: ``normal`` — just systemd + normal services
+\end{frame}
+
+\begin{frame}
+  \frametitle{Xorg --> Wayland, ca. 2008}
+
+  technical debt
+
+  same people
+
+  long-term coexistence
+\end{frame}
+
+\begin{frame}
+  \frametitle{Why is the initrd so special?}
+
+  As far as the kernel is concerned, the initrd is just another file system.\\
+
+  The user-space is a bit different: 
+  \texttt{/init}, \texttt{/etc/initrd-release}\\
+
+%%   \pause
+%%   (We switch back into the initrd image for shutdown.)\\
 
   \pause
 
@@ -123,6 +155,12 @@
 \end{frame}
 
 \begin{frame}
+  \frametitle{What happens when a new file, a service, is added to a package?}
+
+  packaging + dracut packaging
+\end{frame}
+
+\begin{frame}
   \frametitle{Overview of the new scheme}
 
   \begin{columns}
@@ -138,68 +176,72 @@
     \pause
 
     \begin{column}[t]{0.5\textwidth}
+      New scheme:
       \begin{itemize}
-      \item (some list of rpms)
+      \item a list of rpms
         \pause
       \item \texttt{dnf --installroot=… \&\& cpio --create …}
         \pause
-      \item \texttt{systemd FTW!\\\phantom{x}}
+      \item \texttt{systemd}\\\phantom{X}
         \pause
-      \item POOR-solution\\\pause
-        \textcolor{gray}{plain old ordinary rpms}
+      \item 
+        \textcolor{gray}{ordinary daemons}
       \end{itemize}
     \end{column}
   \end{columns}
 \end{frame}
 
+%% \begin{frame}
+%%   \frametitle{Some questions that could in principle be asked frequently}
+
+%%   Q: My rpm is too large?!\\\pause
+%%   A: Split it up!\\
+%%   \phantom{A: }Container folks, cloud users, live cd creators, flatpak consumers,\\
+%%   \phantom{A: }IoT engineers will all thank you.
+
+%%   \bigskip
+%%   \pause
+
+%%   Q: My rpm has too many dependencies?!\\
+%%   A: … \\\phantom{A: }
+%%      \url{https://docs.fedoraproject.org/en-US/minimization/}
+
+%%   \bigskip
+%%   \pause
+
+%%   Q: My rpm requires special setup / doesn't work in the initrd…\\
+%%   A: …\\\phantom{A: }
+
+%% \end{frame}
+
 \begin{frame}
-  \frametitle{Some questions that could in principle be asked frequently}
-
-  Q: My rpm is too large?!\\\pause
-  A: Split it up!\\
-  \phantom{A: }Container folks, cloud users, live cd creators, flatpak consumers,\\
-  \phantom{A: }IoT engineers will all thank you.
-
-  \bigskip
-  \pause
-
-  Q: My rpm has too many dependencies?!\\
-  A: … \\\phantom{A: }
-     \url{https://docs.fedoraproject.org/en-US/minimization/}
-
-  \bigskip
-  \pause
-
-  Q: My rpm requires special setup / doesn't work in the initrd…\\
-  A: …\\\phantom{A: }
-
-\end{frame}
-
-\begin{frame}
-  \frametitle{Why I think it's good to build the image directly from packages}
+   \frametitle{Advantaged of building the image directly from packages}
 
   \begin{itemize}
   \item reliable installation: rpm is very good at doing what it does
   \item normal dependency mechanism
+    \pause
   \item we don't pull files from the host
+    \pause
+  \item images are immutable
   \item images are reproducible
-  \item developers don't need to learn another system
+    \pause
   \item bash helpers → compiled programs
+  \item developers don't need to learn another system
+    \pause
   \item clear ownership of bugs
   \item any improvements are immediately shared
   \end{itemize}
 \end{frame}
 
 \begin{frame}
-  \frametitle{Current implementation — …}
-\end{frame}
+  \frametitle{\texttt{mkosi-initrd}}
 
-\begin{frame}
-  \frametitle{Current implementation — \emph{mkosi-initrd}}
+  \begin{itemize}
+    \item \href{https://github.com/systemd/mkosi}{mkosi} builds images from rpms
 
-  \href{https://github.com/systemd/mkosi}{mkosi} is a python program to build images from rpms
-
-  \href{https://github.com/keszybz/mkosi-initrd}{mkosi-initrd} uses mkosi to create a .cpio.zstd archive
+    \item \href{https://github.com/systemd/mkosi-initrd}{mkosi-initrd} uses mkosi to create a .cpio.zstd archive
+  \end{itemize}
 
   \bigskip
 
@@ -215,22 +257,44 @@
   \end{itemize}
 \end{frame}
 
-\begin{frame}[fragile]
-  \frametitle{Demo?}
+\begin{frame}
+  \frametitle{\texttt{Stages}}
 
-  % First with summary
-  \begin{minted}{bash}
-sudo mkosi -f -o initrd.cpio.zstd sumary
-sudo mkosi -f -o initrd.cpio.zstd
-  \end{minted}
+  I. local generation (\textcolor{gray}{just like dracut})
 
-  \bigskip
   \pause
+  II. generation in koji\\
+  (a curated set of initrd variants + extensions)
 
-  \begin{minted}{bash}
-KVER=5.13.0-0.rc2.19.fc35.x86_64
-sudo mkosi --build-env=KERNEL_VERSION=$KVER -f -o initrd-$KVER.cpio.zstd -r rawhide-35
-  \end{minted}
+  \pause
+  III. signing by Fedora keys
+  (with opt-in signature verification)
+ \end{frame}
+
+
+
+\begin{frame}[fragile]
+  \frametitle{Generation}
+
+  \texttt{sudo dnf install kernel-core}\\
+
+  \texttt{kernel-install add <version> <image>}\\
+  
+  \texttt{mkosi -o initd.cpio.zstd --build-env=KERNEL\_VERSION=<version>}\\
+
+%%   % First with summary
+%%   \begin{minted}{bash}
+%% sudo mkosi -o initrd.cpio.zstd summary
+%% sudo mkosi -o initrd.cpio.zstd
+%%   \end{minted}
+
+%%   \bigskip
+%%   \pause
+
+%%   \begin{minted}{bash}
+%% KVER=5.13.0-0.rc2.19.fc35.x86_64
+%% sudo mkosi --build-env=KERNEL_VERSION=$KVER -f -o initrd-$KVER.cpio.zstd -r rawhide-35
+%%   \end{minted}
 \end{frame}
 
 \begin{frame}[fragile]
@@ -263,36 +327,37 @@ $ du -sh dracut-*.d/ mkosi-*.d/
 
 \end{frame}
 
+%% \begin{frame}
+%%   \frametitle{Host-specific and Generic images}
+
+%%   We build images on the host to be able to customize.\\
+%%   Locally-built images are incompatible with centralized signing for Secure Boot.
+
+%%   \bigskip
+%%   \pause
+
+%%   With images built from rpms it makes even less sense:\\
+%%   everybody does the work, the result is always the same.
+
+%%   \bigskip
+%%   \pause
+
+%%   We could easily build one huge image with ``everything'', but
+%%   it would be slow and boot partitions are small.\\
+
+%%   We need a mechanism to extend/customize images.
+%% \end{frame}
+
 \begin{frame}
-  \frametitle{Host-specific and Generic images}
+  \frametitle{Extensions}
 
-  We build images on the host to be able to customize.\\
-  Locally-built images are incompatible with centralized signing for Secure Boot.
+  systemd-sysext: extensions mounted with overlayfs\\
 
-  \bigskip
-  \pause
-
-  With images built from rpms it makes even less sense:\\
-  everybody does the work, the result is always the same.
-
-  \bigskip
-  \pause
-
-  We could easily build one huge image with ``everything'', but
-  it would be slow and boot partitions are small.\\
-
-  We need a mechanism to extend/customize images.
+  \phantom{systemd-sysext: }dm-verity + signatures
 \end{frame}
 
 \begin{frame}
-  \frametitle{Digression: systemd-sysext}
-
-  DEMO!!!
-
-\end{frame}
-
-\begin{frame}
-  \frametitle{Building sysexts (with mkosi?)}
+  \frametitle{Building sysexts with mkosi}
 
   \begin{enumerate}
   \item Mount an initramfs image somewhere
@@ -304,50 +369,56 @@ $ du -sh dracut-*.d/ mkosi-*.d/
   \end{enumerate}
 \end{frame}
 
-\begin{frame}
-  \frametitle{\sout{Host-specific and }Generic and Host-customized images}
+%% \begin{frame}
+%%   \frametitle{\sout{Host-specific and }Generic and Host-customized images}
 
-  We need a mechanism to extend/customize images.
+%%   We need a mechanism to extend/customize images.
 
-  \bigskip
-  \pause
+%%   \bigskip
+%%   \pause
 
-  sysexts can be loaded into the initramfs image.
+%%   sysexts can be loaded into the initramfs image.
 
-  \bigskip
-  \pause
+%%   \bigskip
+%%   \pause
 
-  Distro-side: the distro builds the kernel, and the initrd,\\
-  \phantom{Distro-side: }and some set of sysexts\\
-  \phantom{Distro-side: }(all three are signed)\\
+%%   Distro-side: the distro builds the kernel, and the initrd,\\
+%%   \phantom{Distro-side: }and some set of sysexts\\
+%%   \phantom{Distro-side: }(all three are signed)\\
 
-  \pause
+%%   \pause
 
-  The boot loader / firmware verifies the kernel+initrd combo\\
-  The initrd checks and loads sysexts\\
-  The kernel verifies sysext images using dm-verity\\
-  (plenty of details TBD)
+%%   The boot loader / firmware verifies the kernel+initrd combo\\
+%%   The initrd checks and loads sysexts\\
+%%   The kernel verifies sysext images using dm-verity\\
+%%   (plenty of details TBD)
 
-  \vfill
-
-  \textcolor{gray}{Should \texttt{initrd-5.13.4-200.fc34.x86\_64.rpm} specify \texttt{Requires:systemd>=<version used>}?}
-\end{frame}
+%%   % \vfill
+%%   % \textcolor{gray}{Should \texttt{initrd-5.13.4-200.fc34.x86\_64.rpm} specify \texttt{Requires:systemd>=<version used>}?}
+%% \end{frame}
 
 \begin{frame}
   \frametitle{What works?}
 
   \textbf{OK:}\\
+  creation of initrd\\
+  integration with kernel scriptlets\\
+  building and use of sysexts\\
   Fedora Server in QEmu with direct kernel boot\\
-  My laptop (Fedora Workstation Lenovo X1)\\
-  LVM\\
-  LUKS\\
+  Normal laptops, LVM, LUKS\\
   emergency mode without authentication\\
   resume
 
   \bigskip
 
-  \textbf{Never tested:}\\
-  iscsi,
+  \textbf{Requires future work:}\\
+  iscsi\\
+  switching back to initramfs for shutdown\\
+  firmware
+
+  \bigskip
+
+  \textbf{Not tested:}\\
   fcoe,
   nfs,
   nbd,
@@ -359,55 +430,48 @@ $ du -sh dracut-*.d/ mkosi-*.d/
   sshd,
   bluetooth,
   netconsole
-
-  \bigskip
-
-  \textbf{Requires future work:}\\
-  integration with systemd-repart?\\
-  switching back to initramfs for shutdown\\
-  firmware
 \end{frame}
 
-\begin{frame}
-  \frametitle{TODO list}
+%% \begin{frame}
+%%   \frametitle{TODO list}
 
-  mkosi: \pulldone{mkosi}{728}{cpio and zstd}\\
-  \phantom{mkosi: }\pulldone{mkosi}{744}{RemoveFiles=}\\
-  \phantom{mkosi: }\commitdone{mkosi}{v10}{Release}\\
+%%   mkosi: \pulldone{mkosi}{728}{cpio and zstd}\\
+%%   \phantom{mkosi: }\pulldone{mkosi}{744}{RemoveFiles=}\\
+%%   \phantom{mkosi: }\commitdone{mkosi}{v10}{Release}\\
 
-  various systemd fixes (249+ should be OK)\\
+%%   various systemd fixes (249+ should be OK)\\
 
-  split modules out of \texttt{kernel-core.rpm}\\
+%%   split modules out of \texttt{kernel-core.rpm}\\
 
-  figure out how to deal with extensions\\
-  figure out how to authenticate root for troubleshooting\\
+%%   figure out how to deal with extensions\\
+%%   figure out how to authenticate root for troubleshooting\\
 
-  \texttt{kernel-install} plugin to call mkosi-initrd\\
+%%   \texttt{kernel-install} plugin to call mkosi-initrd\\
 
-  mkosi support of sysext image creation
-\end{frame}
+%%   mkosi support of sysext image creation
+%% \end{frame}
 
-\begin{frame}
-  \frametitle{TODO list: minimization}
+%% \begin{frame}
+%%   \frametitle{TODO list: minimization}
 
-  Requires:dbus→Recommends:dbus in systemd\\
+%%   Requires:dbus→Recommends:dbus in systemd\\
 
-  Prune from the initrd:\\
-  \texttt{pcre} (we have \texttt{pcre2}),\\
-  \texttt{libcap} (we have \texttt{libcap-ng}),\\
-  \texttt{shadow-utils} (users are pre-created),\\
-  \texttt{util-linux} (we have \texttt{util-linux-core}),\\
-  \texttt{fedora-repos} (images are static),\\
-  \texttt{alternatives} (wtf?),\\
-  \texttt{tzdata}\\
+%%   Prune from the initrd:\\
+%%   \texttt{pcre} (we have \texttt{pcre2}),\\
+%%   \texttt{libcap} (we have \texttt{libcap-ng}),\\
+%%   \texttt{shadow-utils} (users are pre-created),\\
+%%   \texttt{util-linux} (we have \texttt{util-linux-core}),\\
+%%   \texttt{fedora-repos} (images are static),\\
+%%   \texttt{alternatives} (wtf?),\\
+%%   \texttt{tzdata}\\
 
-  Port \texttt{systemd} over to \texttt{openssl}, drop \texttt{libgcrypt}, \texttt{libgpg-error}
+%%   Port \texttt{systemd} over to \texttt{openssl}, drop \texttt{libgcrypt}, \texttt{libgpg-error}
 
-  Drop \texttt{polkit}?
+%%   Drop \texttt{polkit}?
 
-  Do something with identical license texts?
-\end{frame}
-
+%%   Do something with identical license texts?
+%% \end{frame}
+ 
 \begin{frame}
   \frametitle{Summary}
 
@@ -424,7 +488,7 @@ $ du -sh dracut-*.d/ mkosi-*.d/
 
   \url{https://github.com/systemd/mkosi}
 
-  \url{https://github.com/keszybz/mkosi-initrd}
+  \url{https://github.com/systemd/mkosi-initrd}
 
   \url{https://www.freedesktop.org/software/systemd/man/systemd-sysext.html}
 
