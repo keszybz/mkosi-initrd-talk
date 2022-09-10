@@ -1,0 +1,340 @@
+\documentclass[]{beamer}
+%\usepackage[utopia]{mathdesign}
+%\usepackage[no-math]{fontspec}
+%\setmainfont{Liberation Serif}
+
+\usepackage{minted}
+% \usepackage{redhat}
+\usepackage{hyperref}
+\usepackage{ccicons}
+\usepackage{ulem}
+
+\usepackage{tikz}
+\usetikzlibrary{arrows,shapes,snakes,automata,backgrounds,petri}
+
+%gets rid of bottom navigation bars
+\setbeamertemplate{footline}[frame number]{}
+
+%gets rid of navigation symbols
+\setbeamertemplate{navigation symbols}{}
+
+\newcommand{\done}{\textcolor{teal}{\checkmark}}
+\newcommand{\pull}[3]{\href{https://github.com/systemd/#1/pulls/#2}{#3 (\##2)}}
+\newcommand{\pulldone}[3]{\pull{#1}{#2}{#3} \done}
+\newcommand{\commit}[3]{\href{https://github.com/systemd/#1/commit/#2}{#3 (#2)}}
+\newcommand{\commitdone}[3]{\commit{#1}{#2}{#3} \done}
+% \newcommand\pp\pause
+\newcommand\pp{}
+
+
+\title{\textsc{New design for initrds}}
+\author{Zbigniew Jędrzejewski-Szmek}
+\institute{%
+  \includegraphics[width=0.4\textwidth]{images/Logo-redhat-color-375.png}\\
+  \medskip
+  \textit{zbyszek@in.waw.pl}\\
+  \medskip
+  \ccbysa
+}
+\date{\tiny LPC 2022, 12.09.2022}
+
+\begin{document}
+
+\setbeamertemplate{itemize items}[square]
+
+\begin{frame}
+\titlepage % Print the title page as the first slide
+\end{frame}
+
+\begin{frame}
+  \frametitle{(instead of) Intro}
+
+  \pp
+
+  see Lennart's \\
+  \textsc{
+    ``Towards Secure Unified Kernel Images\\
+    for Generic Linux Distributions and Everyone Else''}
+
+  \pp
+
+  \begin{itemize}
+  \item ``let's pre-build initrds in vendor build system''
+
+    \pp
+  \item ``System extension images are GPT disk images, implementing the Discoverable Partitions Specification''
+
+    \pp
+  \item ``Signed as one for SecureBoot''
+
+    \pp
+  \item
+    ``systemd's «service credentials» are a concept for passing identity information, certificates, key material, passwords, and~similar to services''
+
+    \quad
+
+    \pp
+  \item also: reproducible builds
+
+  \pp
+  \item also: a simpler system
+
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Current approach to initrds}
+
+  \pp
+  goals:
+
+  \begin{itemize}
+  \item speed → event-driven logic
+  \item speed → size minimization
+  \item flexibility, versability, end-user choice
+  \item local configuration embedded in the initrd
+  \end{itemize}
+
+  \pp
+  results:
+
+  \begin{itemize}
+  \item local builds
+  \pp
+
+  \item custom logic (e.g. dracut's initqueue)
+  \pp
+
+  \item custom tools (e.g. scripts to bring up lvm, dracut modules)
+  \pp
+
+  \item a unique execution environment
+  \pp
+
+  \item the packaging layer is duplicated
+  \pp
+
+  \item complexity (in particular when dracut is used with systemd)
+  \pp
+
+  \item lots of CPU cycles burnt during each kernel update
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{What does the kernel say?}
+
+  \pp
+  (the short answer: it doesn't care)
+
+  \hfill
+
+  \pp
+  the long answer:
+  the initrd is just an in-memory file system\\
+  \texttt{/init} is started instead of \texttt{/sbin/init}
+\end{frame}
+
+\begin{frame}
+  \frametitle{New goals}
+
+  \begin{itemize}
+    \pp
+  \item reuse distro packaging
+    \pp
+  \item use systemd in the initrd
+    \pp
+  \item use normal services
+    \pp
+  \item standard userspace environment
+    \pp
+  \item reasonable size
+    \pp
+
+  \quad
+
+  \item build reproducible initrd images
+    \pp
+  \item build initrd images on vendor systems
+    \pp
+  \item sign the kernel + initrd
+    \pp
+  \item build a set of System Extension images for the initrd
+    \pp
+  \item sign those too
+    \pp
+
+  \quad
+
+  \item maintainers of user-space packages handle ``initrd bugs''
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{What are System Extensions good for?}
+
+  \pp
+  \textcolor{teal}{Reminder:}{ }\begin{minipage}[t]{0.8\linewidth}
+    the initrd is a compressed cpio archive
+
+    \quad
+
+    a sysext is a GPT image with
+    three partitions:\\
+    the filesystem (e.g.\ compressed squashfs),
+    dm-verity for the filesystem,
+    signature for the verity data
+  \end{minipage}
+
+  \quad
+
+  \begin{itemize}
+    \pp
+  \item a network configuration daemon + sshd
+
+    \pp
+  \item iSCSI / nfs / RAIDs / clevis / storage
+
+    \pp
+  \item the full graphical stack\pp: a11y! \pp i18n!
+
+    \pp
+  \item the full sound stack\pp: a11y!
+
+    \pp
+  \item hardware enablement, incl. bluetooth
+
+    \pp
+  \item (suggestions welcome)
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Digression: mkosi}
+
+  \url{https://github.com/systemd/mkosi}
+
+  \pp
+
+  \begin{itemize}
+  \item A program that builds ``images'' from packages (and sources)
+    \pp
+  \item Support for GPT, verity, and signature
+    \pp
+  \item Also \texttt{cpio} images (initrd/initramfs)
+    \pp
+  \item Uses dnf / apt / pacman / zypper / … as backend\\
+    \pp
+    $\longrightarrow{}$ supports Fedora / CentOS / RHEL / Mageia / OpenMandriva / Debian / Ubuntu / Arch / OpenSUSE / Gentoo (sic!)
+    \pp
+  \item \texttt{mkosi.skeleton/}, \texttt{mkosi.extra/}, \\
+        \texttt{mkosi.build}, \texttt{mkosi.postinst}, \texttt{mkosi.finalize}
+    \pp
+  \item Support for incremental builds
+    \pp
+  \item Writes ``manifests'' of installed packages
+  \item We are working on build reproducibility
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{mkosi-initrd}
+
+  \url{https://github.com/systemd/mkosi-initrd}
+
+  \quad
+
+  \pp
+
+  \begin{itemize}
+  \item mostly a series of a config files for \texttt{mkosi}
+    \pp
+  \item list of packages for the ``basic'' initrd
+    \pp
+  \item \texttt{mkosi.finalize} to set \texttt{/etc/initrd-release}
+    \pp
+  \item set of configs for sysexts
+
+  \quad
+
+    \pp
+  \item also \texttt{/usr/lib/kernel/install.d/50-mkosi-initrd.install}
+
+  \quad
+    \pp
+  \item ``systemd credentials'' will be used for configuration and local assets
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Benefits}
+
+  \begin{itemize}
+  \item \textbf{less} things
+    \pp
+  \item we use package dependency resolution mechanism
+    \pp
+  \item we let rpm/deb/pacman handle 90\% of the installation
+    \pp
+  \item we don't pull files from the host
+    \pp
+  \item images can be reproducible
+    \pp
+  \item images are the same for everyone
+    \pp
+  \item images can be easily signed
+    \pp
+  \item systemd does the heavy lifting in the initrd
+    \pp
+  \item bash helpers → compiled programs
+    \pp
+  \item developers don't need to learn another system\\
+    (initrd is like a normal system,\\
+    \phantom( just on an fs not backed by a disk)
+    \pp
+  \item clear ownership of bugs
+    \pp
+  \item initrd infrastructure can be shared between distros
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Boot loader integration}
+
+  Credentials and sysexts are loaded by systemd-stub.\\
+  Loading \texttt{should} work with any boot loader.
+
+  % \quad
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Links}
+
+  \url{https://github.com/systemd/mkosi}
+
+  \url{https://github.com/systemd/mkosi-initrd}
+
+  \url{https://www.freedesktop.org/software/systemd/man/systemd-sysext.html}
+
+  {
+    \small
+    \url{https://gitlab.com/cryptsetup/cryptsetup/-/wikis/DMVerity}\\
+    \color{gray}{\url{https://www.kernel.org/doc/html/latest/admin-guide/device-mapper/verity.html}}
+    }
+
+  \url{https://www.kernel.org/doc/html/latest/filesystems/overlayfs.html}
+
+  \quad
+
+  These slides:
+  \url{https://github.com/keszybz/mkosi-initrd-talk/raw/main/lpc2022-new-design-for-initrds.pdf}
+
+  \quad
+  \pp
+
+  \hfill \textcolor{red}{QUESTIONS?} \textcolor{green}{\bf /} \textcolor{red}{EOF} \hfill{}
+
+\end{frame}
+
+
+\end{document}
