@@ -1,0 +1,462 @@
+\documentclass[]{beamer}
+%\usepackage[utopia]{mathdesign}
+%\usepackage[no-math]{fontspec}
+%\setmainfont{Liberation Serif}
+
+\usepackage{minted}
+% \usepackage{redhat}
+\usepackage{hyperref}
+\usepackage{ccicons}
+\usepackage{ulem}
+
+\usepackage{tikz}
+\usetikzlibrary{arrows,shapes,snakes,automata,backgrounds,petri}
+
+%gets rid of bottom navigation bars
+\setbeamertemplate{footline}[frame number]{}
+
+%gets rid of navigation symbols
+\setbeamertemplate{navigation symbols}{}
+
+\newcommand{\done}{\textcolor{teal}{\checkmark}}
+\newcommand{\pull}[3]{\href{https://github.com/systemd/#1/pulls/#2}{#3 (\##2)}}
+\newcommand{\pulldone}[3]{\pull{#1}{#2}{#3} \done}
+\newcommand{\commit}[3]{\href{https://github.com/systemd/#1/commit/#2}{#3 (#2)}}
+\newcommand{\commitdone}[3]{\commit{#1}{#2}{#3} \done}
+\newcommand\pp\pause
+%\newcommand\pp{}
+
+
+\title{\textsc{Building initrds in a new way}}
+\author{Zbigniew Jędrzejewski-Szmek}
+\institute{%
+  \includegraphics[width=0.4\textwidth]{images/Logo-redhat-color-375.png}\\
+  \medskip
+  \textit{zbyszek@in.waw.pl}\\
+  \medskip
+  \ccbysa
+}
+\date{\tiny FOSDEM 2023, 4.2.2023}
+
+\begin{document}
+
+\setbeamertemplate{itemize items}[square]
+
+\begin{frame}
+\titlepage % Print the title page as the first slide
+\end{frame}
+
+\begin{frame}
+  \frametitle{(instead of) Intro}
+
+  \pp
+
+  see Lennart's \\
+  \textsc{
+    ``Image-Based Linux and TPMs\\
+    \textit{Measured Boot, Protecting Secrets and you}''}
+
+  \begin{itemize}
+  \item SecureBoot signing used to protect code
+
+  \item ``PCR measurements'', ``boot phases''
+
+  \item
+    systemd's «credentials» are a mechanism to pass identity information, certificates, key material, passwords, and~similar
+
+  \item ``credentials'' locked to PCR state
+
+  \item
+    systemd's «system extensions» are a mechanism to dynamically extend the root fs
+
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}
+  \frametitle{Current approach to initrds}
+
+%%   \pp
+%%   goals:
+
+%%   \begin{itemize}
+%%   \item speed → event-driven logic
+%%   \item speed → size minimization
+%%   \item flexibility, versability, end-user choice
+%%   \item local configuration embedded in the initrd
+%%   \end{itemize}
+
+%%   \pp
+%%   results:
+
+  \pp
+
+  \begin{itemize}
+  \item local builds pulling in files from host fs,\\
+    \texttt{ldd} to resolve dependencies
+  \pp
+
+  \item the packaging layer is duplicated
+  \pp
+
+  \item lots of CPU cycles burnt during each kernel update
+  \pp
+
+  \quad
+
+  \item at runtime: custom logic (e.g. dracut's initqueue)
+  \pp
+
+  \item custom tools (e.g. scripts to bring up LVM, dracut modules)
+  \pp
+
+  \item different execution environment
+  \pp
+
+  \item complexity (in particular when dracut is used with systemd)
+  \pp
+
+  \quad
+
+  \item very little sharing of initrd logic between distros
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Consequences of signing and measurement}
+
+  \pp
+  \begin{itemize}
+  \item signing of the kernel but not the initrd is a waste of CPU cycles \pause\\
+  \item end-users want kernel+initrd signed by the distro \pause\\
+  \item the initrd must be built by the distro \pause\\
+  \item flexibility \& ability to inject local modifications — not useful \pause\\
+
+    \quad
+
+  \item if we are building in a package builder, let's build directly from distro packages\\
+    (we \textit{could} build from files in the fs, but why?)
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Consequences of centralized builds}
+
+  If we use pre-built images, two ways to deliver differentiated code
+  \pause
+
+  \begin{enumerate}
+  \item initrd variants\pause
+  \item systemd-sysexts
+  \end{enumerate}
+\end{frame}
+
+%% \begin{frame}
+%%   \frametitle{What are System Extensions good for?}
+
+%%   \pp
+%%   \textcolor{teal}{Reminder:}{ }\begin{minipage}[t]{0.8\linewidth}
+%%     the initrd is a compressed cpio archive
+
+%%     \quad
+
+%%     a sysext is a GPT image with
+%%     three partitions:\\
+%%     the filesystem (e.g.\ compressed squashfs),
+%%     dm-verity for the filesystem,
+%%     signature for the verity data
+%%   \end{minipage}
+
+%%   \quad
+
+%%   \begin{itemize}
+%%     \pp
+%%   \item a network configuration daemon + sshd
+
+%%     \pp
+%%   \item nfs / RAIDs / clevis / network storage
+
+%%     \pp
+%%   \item the full graphical stack\pp: a11y! \pp i18n!
+
+%%     \pp
+%%   \item the full sound stack\pp: a11y!
+
+%%     \pp
+%%   \item hardware enablement, incl. bluetooth
+
+%%     \pp
+%%   \item (suggestions welcome)
+%%   \end{itemize}
+%% \end{frame}
+
+\begin{frame}
+  \frametitle{Consequences of centralized builds, ctd.}
+
+  If we use UKIs,
+  we need a mechanism to replace config in the initrd
+  \pause
+
+  \begin{enumerate}
+  \item automatic discovery (Discoverable Partitions Spec)\pause
+  \item credentials for configuration\pause
+  \end{enumerate}
+
+  \vfill{}
+
+  Easy building of sysexts depends build reproducibility of the initrd
+\end{frame}
+
+
+%% \begin{frame}
+%%   \frametitle{What does the kernel say?}
+
+%%   \pp
+%%   (the short answer: it doesn't care)
+
+%%   \hfill
+
+%%   \pp
+%%   the long answer:
+%%   the initrd is just an in-memory file system\\
+%%   \texttt{/init} is started instead of \texttt{/sbin/init}
+%% \end{frame}
+
+%% \begin{frame}
+%%   \frametitle{New goals}
+
+%%   \begin{itemize}
+%%     \pp
+%%   \item reuse distro packaging
+%%     \pp
+%%   \item use systemd in the initrd
+%%     \pp
+%%   \item use normal services
+%%     \pp
+%%   \item standard userspace environment
+%%     \pp
+%%   \item reasonable size
+%%     \pp
+
+%%   \quad
+
+%%   \item build reproducible initrd images
+%%     \pp
+%%   \item build initrd images on vendor systems
+%%     \pp
+%%   \item sign the kernel + initrd
+%%     \pp
+%%   \item build a set of System Extension images for the initrd
+%%     \pp
+%%   \item sign those too
+%%     \pp
+
+%%   \quad
+
+%%   \item maintainers of user-space packages handle ``initrd bugs''
+%%   \end{itemize}
+%% \end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{mkosi — introduction}
+
+  \url{https://github.com/systemd/mkosi}
+
+  \pp
+
+  \begin{itemize}
+  \item A program that builds ``images'' from packages (and sources)
+     \pp
+   \item Support for GPT, verity, and signatures → sysexts
+     \pp
+   \item Also archives (\texttt{cpio}) → initrd/initramfs
+%%     \pp
+%%   \item Uses dnf / apt / pacman / zypper / … as backend\\
+%%     \pp
+%%     $\longrightarrow{}$ supports Fedora / CentOS / RHEL / Mageia / OpenMandriva / Debian / Ubuntu / Arch / OpenSUSE / Gentoo (sic!)
+%%     \pp
+%%   \item \texttt{mkosi.skeleton/}, \texttt{mkosi.extra/}, \\
+%%         \texttt{mkosi.build}, \texttt{mkosi.postinst}, \texttt{mkosi.finalize}
+%%     \pp
+%%   \item Support for incremental builds
+%%     \pp
+%%   \item Writes ``manifests'' of installed packages
+%%   \item We are working on build reproducibility
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{mkosi-initrd}
+
+  \url{https://github.com/systemd/mkosi-initrd}
+
+  \quad
+
+  \pp
+
+  \begin{itemize}
+  \item mostly a series of a config files for \texttt{mkosi}
+    \pp
+  \item list of packages for the ``basic'' initrd
+    \pp
+  \item \texttt{mkosi.finalize} to set \texttt{/etc/initrd-release}
+    \pp
+  \item set of configs for sysexts
+
+  \quad
+
+    \pp
+  \item also \texttt{/usr/lib/kernel/install.d/50-mkosi-initrd.install}
+
+  \quad
+
+    \pp
+  \item hopefully coming soon to a Fedora install near you\\
+    \small{\url{https://fedoraproject.org/wiki/Changes/mkosi-initrd}}
+    
+%%   \quad
+%%     \pp
+%%   \item ``systemd credentials'' will be used for configuration and local assets
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Results}
+
+  \begin{itemize}
+  \pp
+  \item We get fully functional initrds.
+
+  \pp
+  \item The initrds are \textbf{bigger}.\\
+  \pp
+  Most of the difference is caused by kernel modules.
+
+  \pp
+  \item Only some subset of installations is supported.
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}
+  \frametitle{Benefits}
+
+  \begin{itemize}
+  \item \textbf{less} things
+    \pp
+  \item we use package dependency resolution mechanism
+    \pp
+  \item we let rpm/deb/pacman handle 90\% of the installation
+    \pp
+  \item we don't pull files from the host
+    \pp
+  \item images can be reproducible
+    \pp
+  \item images are the same for everyone
+    \pp
+  \item images can be easily signed
+    \pp
+  \item systemd does the heavy lifting in the initrd
+%%     \pp
+%%   \item bash helpers → compiled programs
+%%     \pp
+%%   \item developers don't need to learn another system\\
+%%     (initrd is like a normal system,\\
+%%     \phantom( just on an fs not backed by a disk)
+%%     \pp
+%%   \item clear ownership of bugs
+%%     \pp
+%%   \item initrd infrastructure can be shared between distros
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Objections?}
+
+% If you have some experience in this area,
+% and you think that this just infeasible/inefficient/unreasonable, consider that:
+
+  \begin{itemize}
+    \pp
+    \item 
+      systemd was already used in the initrd
+    \pp
+    \item 
+      the first thing systemd does is to set up the environment
+    \pp
+    \item 
+      having tools that support running in a custom environment is hence not useful
+    \pp
+    \item 
+      after removing custom logic we don't need to add anything back
+    \pp
+    \item 
+      the ecosystem is moving away from scripts towards compiled daemons
+    \pp
+    \item 
+      most of the code is in shared libraries, which are installed in full because of link dependencies
+    \pp
+    \item 
+      error handling, timeouts, retries, localized messages, event-driven logic, netlink,
+      D-bus, all are much easier with ``real'' code
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}
+  \frametitle{Progress over the last few months}
+  
+  \begin{itemize}
+  \item \texttt{mkosi-initrd} has a growing test suite (booting different storage types)
+  \item \texttt{mkosi} supports builds as an unprivileged user
+  \item \texttt{systemd} is getting new credential features
+  \item \texttt{systemd} has new \texttt{ukify} helper to builds UKIs
+  \item Fedora 38 Change accepted for Unified Kernel Images for VMs
+  \item New kernel package split in Fedora (\texttt{kernel-modules-core} finally)
+  \item GRUB2 might get support for UKIs (\url{https://github.com/osteffenrh/grub2})
+  \item Fedora 39 Change proposal for \texttt{mkosi-initrd}
+  \end{itemize}
+\end{frame}
+  
+
+
+%% \begin{frame}
+%%   \frametitle{Boot loader integration}
+
+%%   Credentials and sysexts are loaded by systemd-stub.\\
+%%   Loading \texttt{should} work with any boot loader.
+
+%%   % \quad
+%% \end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Links}
+
+  \url{https://github.com/systemd/mkosi}
+
+  \url{https://github.com/systemd/mkosi-initrd}
+
+  \url{https://www.freedesktop.org/software/systemd/man/systemd-sysext.html}
+
+  {
+    \small
+    \url{https://gitlab.com/cryptsetup/cryptsetup/-/wikis/DMVerity}\\
+    \color{gray}{\url{https://www.kernel.org/doc/html/latest/admin-guide/device-mapper/verity.html}}
+    }
+
+  \url{https://www.kernel.org/doc/html/latest/filesystems/overlayfs.html}
+
+  \quad
+
+  These slides:
+  \url{https://github.com/keszybz/mkosi-initrd-talk/raw/main/fosdem2023-buildling-initrds-in-a-new-way.pdf}
+
+  \quad
+  \pp
+
+  \hfill \textcolor{red}{QUESTIONS?} \textcolor{green}{\bf /} \textcolor{red}{EOF} \hfill{}
+
+\end{frame}
+
+
+\end{document}
