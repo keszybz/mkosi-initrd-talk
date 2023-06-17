@@ -23,8 +23,8 @@
 \newcommand{\pulldone}[3]{\pull{#1}{#2}{#3} \done}
 \newcommand{\commit}[3]{\href{https://github.com/systemd/#1/commit/#2}{#3 (#2)}}
 \newcommand{\commitdone}[3]{\commit{#1}{#2}{#3} \done}
-\newcommand\pp\pause
-%\newcommand\pp{}
+%\newcommand\pp\pause
+\newcommand\pp{}
 
 
 \title{\textsc{Building initrds in a new way}}
@@ -127,10 +127,10 @@
 
   \pp
   \begin{itemize}
-  \item signing of the kernel but not the initrd is a waste of CPU cycles \pause\\
-  \item end-users want kernel+initrd signed by the distro \pause\\
-  \item the initrd must be built by the distro \pause\\
-  \item flexibility \& ability to inject local modifications — not useful \pause\\
+  \item signing of the kernel but not the initrd is a waste of CPU cycles \pp\\
+  \item end-users want kernel+initrd signed by the distro \pp\\
+  \item the initrd must be built by the distro \pp\\
+  \item flexibility \& ability to inject local modifications — not useful \pp\\
 
     \quad
 
@@ -143,10 +143,10 @@
   \frametitle{Consequences of centralized builds}
 
   If we use pre-built images, two ways to deliver differentiated code
-  \pause
+  \pp
 
   \begin{enumerate}
-  \item initrd variants\pause
+  \item initrd variants\pp
   \item systemd-sysexts
   \end{enumerate}
 \end{frame}
@@ -195,11 +195,11 @@
 
   If we use UKIs,
   we need a mechanism to replace config in the initrd
-  \pause
+  \pp
 
   \begin{enumerate}
-  \item automatic discovery (Discoverable Partitions Spec)\pause
-  \item credentials for configuration\pause
+  \item automatic discovery (Discoverable Partitions Spec)\pp
+  \item credentials for configuration\pp
   \end{enumerate}
 
   \vfill{}
