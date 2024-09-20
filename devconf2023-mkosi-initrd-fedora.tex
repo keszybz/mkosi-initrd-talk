@@ -23,8 +23,8 @@
 \newcommand{\pulldone}[3]{\pull{#1}{#2}{#3} \done}
 \newcommand{\commit}[3]{\href{https://github.com/systemd/#1/commit/#2}{#3 (#2)}}
 \newcommand{\commitdone}[3]{\commit{#1}{#2}{#3} \done}
-%\newcommand\pp\pause
-\newcommand\pp{}
+\newcommand\pp\pause
+%\newcommand\pp{}
 
 
 \title{\textsc{Mkosi-initrd (in Fedora)}}
@@ -211,6 +211,7 @@
   \pp
 
   \begin{enumerate}
+    \addtocounter{enumi}{-1}
   \item initrd variants\pp
   \item credentials\pp
   \item systemd-sysexts\pp
@@ -292,7 +293,11 @@
 
   confext — partial system image that is \texttt{overlayfs}ed on the host system:
   \textcolor{blue}{\texttt{/etc}}
-  \\\quad\pp
+
+%%   \vfill
+
+%%   \pp
+%%   Building of sysexts depends build reproducibility of the initrd
 \end{frame}
 
 \begin{frame}
@@ -317,25 +322,25 @@
   \hspace*{-2em}\includegraphics[width=1.15\textwidth]{images/systemd-dissect.png}
 \end{frame}
 
-\begin{frame}
-  \frametitle{What are DDIs good for?}
+%% \begin{frame}
+%%   \frametitle{What are DDIs good for?}
 
-  operating system image → hardware or VM or container
-  \\\quad
+%%   operating system image → hardware or VM or container
+%%   \\\quad
 
-  portable service
-  \\\quad
+%%   portable service
+%%   \\\quad
 
-  % initrd?
+%%   % initrd?
 
-  system extension
-  \\\quad
+%%   system extension
+%%   \\\quad
 
-  initrd extension
-  \\\quad
+%%   initrd extension
+%%   \\\quad
 
-  portable service extension
-\end{frame}
+%%   portable service extension
+%% \end{frame}
 
 %% \begin{frame}
 %%   \frametitle{What are System Extensions good for?}
@@ -429,11 +434,31 @@
   3rd extension mechanism: ``addons''
 \end{frame}
 
+\begin{frame}
+  \frametitle{``Addons''}
+
+  UKI-like binaries with kernel parameters
+\end{frame}
+
+\begin{frame}
+  \frametitle{How to deliver differentiated code?}
+  \pp
+
+  \begin{enumerate}
+    \addtocounter{enumi}{-1}
+  \item initrd variants\pp
+  \item credentials → encrypted via TPM\pp
+  \item systemd-sysexts → checked via kernel keyring
+  \item systemd-confexts\pp
+  \item ``addons'' → checked via SecureBoot db / shim
+  \end{enumerate}
+\end{frame}
+
 \begin{frame}[fragile]
   \frametitle{Unified Kernel Images}
-  \vfill
+  \framesubtitle{Recent work}
 
-  Lots of tooling-level work for Unified Kernel Images (UKIs)\\
+  Lots of work on tooling for Unified Kernel Images (UKIs)\\
   - ukify: python-pefile, config files, sbsign/pesign, addons, SBAT\\
   - \texttt{systemd-measure} to precalculate PCR measurement after boot\\
   - \texttt{kernel-install/60-ukify.install}\\
@@ -445,33 +470,13 @@
 \end{frame}
 
 \begin{frame}
-  \frametitle{How to deliver differentiated code?}
-  \pp
-
-  \begin{enumerate}
-  \item initrd variants\pp
-  \item credentials → encrypted via TPM\pp
-  \item systemd-sysexts → checked via kernel keyring
-  \item systemd-confexts\pp
-  \item ``addons'' → checked via SecureBoot db / shim
-  \end{enumerate}
-
-  \vfill
-
-  \pp
-  Building of sysexts depends build reproducibility of the initrd
-\end{frame}
-
-\begin{frame}
-  \frametitle{Progress over the last few months}
+  \frametitle{Recent work – other areas}
 
   \begin{itemize}
   \item \texttt{mkosi-initrd} has a growing test suite (booting different storage types)
   \item \texttt{mkosi} supports builds as an unprivileged user
-  \item \texttt{systemd} is getting new credential features
-  \item \texttt{systemd} has new \texttt{ukify} helper to builds UKIs
   \item Fedora 38 Change for Unified Kernel Images for VMs
-  \item New kernel package split in Fedora (\texttt{kernel-modules-core} finally)
+  \item New kernel package split in Fedora (\texttt{kernel-modules-core})
   \item GRUB2 might get support for UKIs (\url{https://github.com/osteffenrh/grub2})
   \item Fedora 39 Change for \texttt{mkosi-initrd}
         (\small\url{https://fedoraproject.org/wiki/Changes/mkosi-initrd})
@@ -498,7 +503,7 @@
   \quad
 
   These slides:
-  \url{https://github.com/keszybz/mkosi-initrd-talk/raw/main/fosdem2023-buildling-initrds-in-a-new-way.pdf}
+  \url{https://github.com/keszybz/mkosi-initrd-talk/raw/main/devconf2023-mkosi-initrd-fedora.pdf}
 
   \quad
   \pp
