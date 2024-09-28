@@ -23,8 +23,8 @@
 \newcommand{\pulldone}[3]{\pull{#1}{#2}{#3} \done}
 \newcommand{\commit}[3]{\href{https://github.com/systemd/#1/commit/#2}{#3 (#2)}}
 \newcommand{\commitdone}[3]{\commit{#1}{#2}{#3} \done}
-%\newcommand\pp\pause
-\newcommand\pp{}
+\newcommand\pp\pause
+%\newcommand\pp{}
 \newcommand{\secsec}[1]{\begin{frame}[c]\Huge \textsc #1\end{frame}}
 
 \title{\textsc{mkosi-initrd:\\initrds built from system packages}}
@@ -288,25 +288,6 @@ $ dracut --list-modules | wc -l
   3. Allow easy local use, preprare for centralized builds
 \end{frame}
 
-\begin{frame}
-  \frametitle{steps towards world domination}
-
-  \pp
-  mkosi-initrd is now part of mkosi,\\
-  installed as \texttt{/usr/lib/kernel/install.d/50-mkosi.install}
-  \\
-
-  \pp
-  support for openssl ``signing engines'', sbsign, pesign\\
-  \pp
-  (open pull request for) offline signing
-  \\
-  
-  \pp
-  mkosi / mkosi-initrd can detect the CPU vendor and build µcode initrd
-  => \texttt{.ucode} section
-\end{frame}
-
 \begin{frame}[fragile]
   \frametitle{Initrds and … exitrds}
 
@@ -336,19 +317,55 @@ $ dracut --list-modules | wc -l
 
   \begin{enumerate}
     \addtocounter{enumi}{-1}
-  \item initrd variants\pp
+  \item initrd variants
   \item ``addons'' → checked via SecureBoot db / shim
-    \pp
   \item systemd-sysexts → checked via kernel keyring
   \item systemd-confexts
-    \pp
-  \item credentials → encrypted via TPM
+  \item credentials → encrypted via TPM|local key
   \end{enumerate}
 
 %%   \vfill
 
 %%   \pp
 %%   Building of sysexts depends build reproducibility of the initrd
+\end{frame}
+
+\begin{frame}
+  \frametitle{steps towards world domination}
+
+  \pp
+  mkosi-initrd is now part of mkosi,\\
+  installed as \texttt{/usr/lib/kernel/install.d/50-mkosi.install}
+  \\
+
+  \pp
+  support for openssl ``signing engines'', sbsign, pesign\\
+  \pp
+  (open pull request for) offline signing
+  \\
+  
+  \pp
+  mkosi can build sysexts, but it's still PoC
+  \\
+  
+  \pp
+  mkosi / mkosi-initrd can detect the CPU vendor and build µcode initrd
+  => \texttt{.ucode} section
+\end{frame}
+
+\begin{frame}
+  \frametitle{The ``big initrd'' problem}
+
+  \pp
+  the problem is general: drivers, firmware, composefs, …
+  \\
+
+  \pp
+  copying is fast, decompression is slow => avoid decompression
+  \\
+
+  \pp
+  the kernel may allow zero-copy donation of fs image
 \end{frame}
 
 %% \begin{frame}
@@ -564,15 +581,21 @@ $ dracut --list-modules | wc -l
 
 
 \begin{frame}
-  \frametitle{Short list of the tools}
+  \frametitle{Summary: short list of tools \& concepts}
 
+  \pp
   mkosi \\
-  mkosi-initrd \\
-  kernel-install | 50-mkosi.install \\
-  ukify \\
+  mkosi-initrd | 50-mkosi.install \\
+  ukify | 60-ukify.install \\
+  kernel-install \\
   systemd-measure \\
   pesign | sbsign \\
+  addons | sysexts | confexts | credentials \\
+  sd-stub \\
+  reproducible builds \\
   UKIs | multi-profile UKIs | incremental builds | offline signing\\
+  cpio | squashfs | EROFS | zero-copy unpacking \\
+  immutable \& signed initrd
 
 \end{frame}
 
